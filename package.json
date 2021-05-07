@@ -4,5 +4,9 @@
   "main": "index.js",
   "repository": "https://github.com/Atlanstis/gulp-demo.git",
   "author": "Gypsophila. <futur_@163.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "^4.0.2",
+    "gulp-sass": "^4.1.0"
+  }
 }
