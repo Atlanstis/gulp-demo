@@ -2,6 +2,7 @@ const { src, dest, parallel } = require('gulp')
 const sass = require('gulp-sass')
 const babel = require('gulp-babel')
 const swig = require('gulp-swig')
+const imagemin = require('gulp-imagemin')
 
 const data = {
   pkg: require('./package.json'),
@@ -28,7 +29,19 @@ const page = () => {
     .pipe(dest('dist'))
 }
 
-const compile = parallel(style, script, page)
+const image = () => {
+  return src('src/assets/images/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+
+const font = () => {
+  return src('src/assets/fonts/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+
+const compile = parallel(style, script, page, image, font)
 
 module.exports = {
   compile

@@ -131,9 +131,45 @@ module.exports = {
 
 运行 `yarn gulp page` ，查看结果。
 
-## 组合以上三个任务
+## 图片和字体文件转换
 
-由于以上三个任务，运行过程中，没有相互的关联。因此，我们可以通过 `parallel()` 并行执行多个任务，提升构建效率。
+### gulp-imagemin
+
+对图片资源进行压缩，非图片资源会被略过处理。
+
+#### 安装
+
+```shell
+$ yarn add gulp-imagemin --dev
+```
+
+#### 修改 gulpfile.js
+
+```js
+const { src, dest } = require('gulp')
+const imagemin = require('gulp-imagemin')
+
+const image = () => {
+  return src('src/assets/images/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+const font = () => {
+  return src('src/assets/fonts/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+module.exports = {
+  image,
+  font
+}
+```
+
+运行命令 `yarn gulp image`，`yarn gulp font` 查看结果。
+
+## 组合以上任务
+
+由于以上几个任务，运行过程中，没有相互的关联。因此，我们可以通过 `parallel()` 并行执行多个任务，提升构建效率。
 
 ### 修改 gulpfile.js
 
@@ -142,6 +178,7 @@ const { src, dest, parallel } = require('gulp')
 const sass = require('gulp-sass')
 const babel = require('gulp-babel')
 const swig = require('gulp-swig')
+const imagemin = require('gulp-imagemin')
 
 const data = {
   pkg: require('./package.json'),
@@ -168,7 +205,19 @@ const page = () => {
     .pipe(dest('dist'))
 }
 
-const compile = parallel(style, script, page)
+const image = () => {
+  return src('src/assets/images/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+
+const font = () => {
+  return src('src/assets/fonts/**', { base: 'src' })
+    .pipe(imagemin())
+    .pipe(dest('dist'))
+}
+
+const compile = parallel(style, script, page, image, font)
 
 module.exports = {
   compile
@@ -176,4 +225,3 @@ module.exports = {
 ```
 
 运行命令 `yarn gulp compile `，查看结果。
-
