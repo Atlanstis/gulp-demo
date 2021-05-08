@@ -1,4 +1,7 @@
-const { src, dest, parallel } = require('gulp')
+const { src, dest, parallel, series } = require('gulp')
+
+const del = require('del')
+
 const sass = require('gulp-sass')
 const babel = require('gulp-babel')
 const swig = require('gulp-swig')
@@ -7,6 +10,11 @@ const imagemin = require('gulp-imagemin')
 const data = {
   pkg: require('./package.json'),
   date: new Date()
+}
+
+const clean = () => {
+  // 参数为需要清除的文件路径
+  return del(['dist'])
 }
 
 const style = () => {
@@ -41,8 +49,14 @@ const font = () => {
     .pipe(dest('dist'))
 }
 
+const extra = () => {
+  return src('public/**', { base: 'public' }).pipe(dest('dist'))
+}
+
 const compile = parallel(style, script, page, image, font)
 
+const build = series(clean, parallel(compile, extra))
+
 module.exports = {
-  compile
+  build
 }
