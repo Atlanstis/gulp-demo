@@ -58,3 +58,38 @@ module.exports = {
 sass 模板中，会把以下划线 _ 开头的 scss 文件，会被认为为主文件的依赖文件，不会被转化。
 
 此时，我们就完成了scss 文件的编译。
+
+## 脚本文件编译
+
+### gulp-babel
+
+编译 Javascript 到指定的 ES 版本。
+
+#### 安装
+
+```shell
+$ yarn add gulp-babel --dev
+$ yarn add @babel/core @babel/preset-env --dev
+```
+
+#### 修改 gulpfile.js
+
+```js
+const { src, dest } = require('gulp')
+const babel = require('gulp-babel')
+
+const script = () => {
+  return src('src/assets/scripts/*.js', { base: 'src' })
+    .pipe(babel({ presets: ['@babel/preset-env'] }))
+    .pipe(dest('dist'))
+}
+
+module.exports = {
+  script
+}
+```
+
+`@babel/preset-env` 会将所有 ES 的新特性进行编译转化。可以根据需要，更改 babel 配置，达到不同的转化效果。
+
+运行 `yarn gulp script` ，查看结果。
+

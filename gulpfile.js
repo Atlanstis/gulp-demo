@@ -1,5 +1,6 @@
 const { src, dest } = require('gulp')
 const sass = require('gulp-sass')
+const babel = require('gulp-babel')
 
 const style = () => {
   // { base: 'src' } 设置基准路径，此时写入流，会按照 src() 中匹配之后的路径（此处路径为 /assets/styles/），生成文件
@@ -8,6 +9,13 @@ const style = () => {
     .pipe(dest('dist'))
 }
 
+const script = () => {
+  return src('src/assets/scripts/*.js', { base: 'src' })
+    .pipe(babel({ presets: ['@babel/preset-env'] }))
+    .pipe(dest('dist'))
+}
+
 module.exports = {
-  style
+  style,
+  script
 }
