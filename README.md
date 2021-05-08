@@ -469,3 +469,92 @@ module.exports = {
 
 执行命令 `yarn gulp serve`，会自动打开一个以 dist 目录为基础的网页。
 
+## 监视变化以及构建过程优化
+
+gulp 提供了 `watch` 方法，该方法会监听路径通配符下的文件，然后重新去执行某个任务。
+
+### 修改 gulpfile.js
+
+给先对应的编译任务，添加 watch 方法。这时，源文件发生变化后，就会触发任务的重新执行，进而影响 dist 目录及浏览器页面显示。
+
+```js
+const { watch } = require('gulp')
+
+const page = () => {
+  // src/**/*.html 任意子目录下的 html
+  return src('src/*.html', { base: 'src' })
+    .pipe(plugins.swig({ data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
+    .pipe(dest('dist'))
+}
+
+const serve = () => {
+  // 第一个参数为路径，第二个参数为执行的任务
+  watch('src/assets/styles/*.scss', style)
+  watch('src/assets/scripts/*.js', script)
+  watch('src/*.html', page)
+  watch('src/assets/images/**', image)
+  watch('src/assets/fonts/**', font)
+  watch('public/**', extra)
+
+  bs.init({
+    notify: false,
+    port: 2080, // 启动端口
+    open: true, // 是否自动打开浏览器
+    files: 'dist/**', // 监听的文件，发生变化后，自动更新浏览器
+    server: {
+      baseDir: 'dist', // web 服务根目录
+      routes: {
+        '/node_modules': 'node_modules' // 针对 / 开头请求，进行转接
+      }
+    }
+  })
+}
+```
+
+> 这里可能会因为 swig 模板引擎缓存的机制导致页面不会发生变化。此时，需要额外将 swig 选项中 cache 设置为 false。
+
+### 优化开发流程
+
+针对开发阶段，那些搬运压缩的任务（图片，字体等），更好的方案是不进行重新构建，直接进行复制，减少开发过程中的损耗。
+
+在这里，我们将图片字体的资源，在开发过程中，不进行构建。仅在打包中，进行构建压缩。
+
+通过 `browser-sync` 的 baseDir 属性，依次获取没有构建的资源。
+
+```js
+const serve = () => {
+  // 第一个参数为路径，第二个参数为执行的任务
+  watch('src/assets/styles/*.scss', style)
+  watch('src/assets/scripts/*.js', script)
+  watch('src/*.html', page)
+	// 图片字体资源等，发生变化，重新加载即可
+  watch(['src/assets/images/**', 'src/assets/fonts/**', 'public/**'], bs.reload)
+  
+  bs.init({
+    notify: false,
+    port: 2080, // 启动端口
+    open: true, // 是否自动打开浏览器
+    files: 'dist/**', // 监听的文件，发生变化后，自动更新浏览器
+    server: {
+      baseDir: ['dist', 'src', 'public'], // 当为数组时，会按照顺序依次查找文件
+      routes: {
+        '/node_modules': 'node_modules' // 针对 / 开头请求，进行转接
+      }
+    }
+  })
+}
+
+const compile = parallel(style, script, page)
+
+const build = series(clean, parallel(compile, image, font, extra))
+
+// 先进行编译，再打开浏览器，防止浏览器资源不存在
+const develop = series(compile, serve)
+
+module.exports = {
+  build,
+  develop
+}
+```
+
+至此，我们可以通过 `yarn gulp develop` 命令，进行开发。
