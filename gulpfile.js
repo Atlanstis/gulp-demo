@@ -1,4 +1,4 @@
-const { src, dest } = require('gulp')
+const { src, dest, parallel } = require('gulp')
 const sass = require('gulp-sass')
 const babel = require('gulp-babel')
 const swig = require('gulp-swig')
@@ -28,8 +28,8 @@ const page = () => {
     .pipe(dest('dist'))
 }
 
+const compile = parallel(style, script, page)
+
 module.exports = {
-  style,
-  script,
-  page
+  compile
 }

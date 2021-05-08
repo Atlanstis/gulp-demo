@@ -131,3 +131,49 @@ module.exports = {
 
 运行 `yarn gulp page` ，查看结果。
 
+## 组合以上三个任务
+
+由于以上三个任务，运行过程中，没有相互的关联。因此，我们可以通过 `parallel()` 并行执行多个任务，提升构建效率。
+
+### 修改 gulpfile.js
+
+```js
+const { src, dest, parallel } = require('gulp')
+const sass = require('gulp-sass')
+const babel = require('gulp-babel')
+const swig = require('gulp-swig')
+
+const data = {
+  pkg: require('./package.json'),
+  date: new Date()
+}
+
+const style = () => {
+  // { base: 'src' } 设置基准路径，此时写入流，会按照 src() 中匹配之后的路径（此处路径为 /assets/styles/），生成文件
+  return src('src/assets/styles/*.scss', { base: 'src' })
+    .pipe(sass({ outputStyle: 'expanded' })) // { outputStyle: 'expanded' } css 文件中，将中括号完全展开
+    .pipe(dest('dist'))
+}
+
+const script = () => {
+  return src('src/assets/scripts/*.js', { base: 'src' })
+    .pipe(babel({ presets: ['@babel/preset-env'] }))
+    .pipe(dest('dist'))
+}
+
+const page = () => {
+  // src/**/*.html 任意子目录下的 html
+  return src('src/*.html', { base: 'src' })
+    .pipe(swig({ data })) // 处理动态数据
+    .pipe(dest('dist'))
+}
+
+const compile = parallel(style, script, page)
+
+module.exports = {
+  compile
+}
+```
+
+运行命令 `yarn gulp compile `，查看结果。
+
