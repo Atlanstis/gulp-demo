@@ -2,9 +2,15 @@ const { src, dest, parallel, series } = require('gulp')
 
 const del = require('del')
 
-const loadPlugins = require('gulp-load-plugins')
+// 热更新服务器
+const browserSync = require('browser-sync')
 
+// 自动加载插件
+const loadPlugins = require('gulp-load-plugins')
 const plugins = loadPlugins()
+
+// 创建一个开发服务器
+const bs = browserSync.create()
 
 const data = {
   pkg: require('./package.json'),
@@ -52,10 +58,26 @@ const extra = () => {
   return src('public/**', { base: 'public' }).pipe(dest('dist'))
 }
 
+const serve = () => {
+  bs.init({
+    notify: false,
+    port: 2080, // 启动端口
+    open: true, // 是否自动打开浏览器
+    files: 'dist/**', // 监听的文件，发生变化后，自动更新浏览器
+    server: {
+      baseDir: 'dist', // web 服务根目录
+      routes: {
+        '/node_modules': 'node_modules' // 针对 / 开头请求，进行转接
+      }
+    }
+  })
+}
+
 const compile = parallel(style, script, page, image, font)
 
 const build = series(clean, parallel(compile, extra))
 
 module.exports = {
-  build
+  build,
+  serve
 }

@@ -426,3 +426,46 @@ module.exports = {
 }
 ```
 
+## 热更新开发服务器
+
+### browser-sync
+
+支持代码文件修改后，热更新到浏览器页面。
+
+#### 安装
+
+```shell
+$ yarn add browser-sync --dev
+```
+
+#### 修改 gulpfile.js
+
+```js
+const browserSync = require('browser-sync')
+
+// 创建一个开发服务器
+const bs = browserSync.create()
+
+// 创建 gulp 任务
+const serve = () => {
+  bs.init({
+    notify: false,
+    port: 2080, // 启动端口
+    open: true, // 是否自动打开浏览器
+    files: 'dist/**', // 监听的文件，发生变化后，自动更新浏览器
+    server: {
+      baseDir: 'dist', // web 服务根目录
+      routes: {
+        '/node_modules': 'node_modules' // 针对 / 开头请求，进行转接
+      }
+    }
+  })
+}
+
+module.exports = {
+  serve
+}
+```
+
+执行命令 `yarn gulp serve`，会自动打开一个以 dist 目录为基础的网页。
+
