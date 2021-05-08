@@ -558,3 +558,237 @@ module.exports = {
 ```
 
 至此，我们可以通过 `yarn gulp develop` 命令，进行开发。
+
+## useref 文件引用处理
+
+针对项目中，直接引用 node_modules 的内容，在打包后还是无法使用的。因此，我们可以通过 `gulp-useref` 插件进行处理。
+
+### gulp-useref
+
+#### 安装
+
+```shell
+$ yarn add gulp-useref --dev
+```
+
+#### 修改 gulpfile.js
+
+```js
+const useref = () => {
+  return (
+    src('dist/*.html', { base: 'dist' })
+      // searchPath: 查找路径
+      .pipe(plugins.useref({ searchPath: ['dist', '.'] }))
+      .pipe(dest('dist'))
+  )
+}
+
+module.exports = {
+  useref
+}
+```
+
+`gulp-useref` 的主要作用是将 html 文件中，以下格式（以`<!-- build:` 开头，`<!-- endbuild -->` 结束）的段落进行处理。查找相对应的文件，并打包生成新的文件。此处，将 /node_modules/ 和 assets 下的内容，打包至 assets/styles/vendor.css 与  assets/styles/main.css 下。
+
+```html
+<!-- build:css assets/styles/vendor.css -->
+<link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.css">
+<!-- endbuild -->
+<!-- build:css assets/styles/main.css -->
+<link rel="stylesheet" href="assets/styles/main.css">
+<!-- endbuild -->
+```
+
+执行命令 `yarn gulp useref `，会将 dist 目录下 html 文件进行处理。
+
+### 文件压缩
+
+通过执行命令 `yarn gulp useref ` 后，我们还可以将相对应转化成的文件进行压缩，减少体积。
+
+#### 安装
+
+```shell
+// 压缩 html
+$ yarn add gulp-htmlmin --dev
+// 压缩 js
+$ yarn add gulp-uglify --dev
+// 压缩 css
+$ yarn add gulp-clean-css --dev
+// 判断文件后缀
+$ yarn add gulp-if --dev
+```
+
+####  修改  gulpfile.js
+
+```js
+const useref = () => {
+  return (
+    src('dist/*.html', { base: 'dist' })
+      // searchPath: 查找路径
+      .pipe(plugins.useref({ searchPath: ['dist', '.'] }))
+      // 压缩 js css html
+      .pipe(plugins.if(/\.js$/, plugins.uglify()))
+      .pipe(plugins.if(/\.css$/, plugins.cleanCss()))
+      .pipe(
+        plugins.if(
+          /\.html$/,
+          plugins.htmlmin({
+            collapseWhitespace: true, // 去除空格
+            minifyCSS: true, // 压缩 html 文件内 css
+            minifyJS: true // 压缩 html 文件内 js
+          })
+        )
+      )
+      .pipe(dest('dist'))
+  )
+}
+```
+
+执行命令 `yarn gulp useref ` ，查看结果。
+
+### 更改构建过程
+
+ 在上一步 useref 过程中，存在一个问题。即在 dist 文件下，存在读取跟写入同时存在的问题，可能会导致一些问题。因此，我们将构建文件先打包至 temp 目录后，再将 temp 目录下内容，打包到 dist 目录下。
+
+### 最后的 gulpfile.js
+
+```js
+const { src, dest, parallel, series, watch } = require('gulp')
+
+const del = require('del')
+
+// 热更新服务器
+const browserSync = require('browser-sync')
+
+// 自动加载插件
+const loadPlugins = require('gulp-load-plugins')
+const plugins = loadPlugins()
+
+// 创建一个开发服务器
+const bs = browserSync.create()
+
+const data = {
+  menus: [
+    {
+      name: 'Home',
+      icon: 'aperture',
+      link: 'index.html'
+    },
+    {
+      name: 'Features',
+      link: 'features.html'
+    },
+    {
+      name: 'About',
+      link: 'about.html'
+    }
+  ],
+  pkg: require('./package.json'),
+  date: new Date()
+}
+
+const clean = () => {
+  // 参数为需要清除的文件路径
+  return del(['dist', 'temp'])
+}
+
+const style = () => {
+  // { base: 'src' } 设置基准路径，此时写入流，会按照 src() 中匹配之后的路径（此处路径为 /assets/styles/），生成文件
+  return src('src/assets/styles/*.scss', { base: 'src' })
+    .pipe(plugins.sass({ outputStyle: 'expanded' })) // { outputStyle: 'expanded' } css 文件中，将中括号完全展开
+    .pipe(dest('temp'))
+    .pipe(bs.reload({ stream: true }))
+}
+
+const script = () => {
+  return src('src/assets/scripts/*.js', { base: 'src' })
+    .pipe(plugins.babel({ presets: ['@babel/preset-env'] }))
+    .pipe(dest('temp'))
+    .pipe(bs.reload({ stream: true }))
+}
+
+const page = () => {
+  // src/**/*.html 任意子目录下的 html
+  return src('src/*.html', { base: 'src' })
+    .pipe(plugins.swig({ data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
+    .pipe(dest('temp'))
+    .pipe(bs.reload({ stream: true }))
+}
+
+const image = () => {
+  return src('src/assets/images/**', { base: 'src' })
+    .pipe(plugins.imagemin())
+    .pipe(dest('dist'))
+}
+
+const font = () => {
+  return src('src/assets/fonts/**', { base: 'src' })
+    .pipe(plugins.imagemin())
+    .pipe(dest('dist'))
+}
+
+const extra = () => {
+  return src('public/**', { base: 'public' }).pipe(dest('dist'))
+}
+
+const serve = () => {
+  // 第一个参数为路径，第二个参数为执行的任务
+  watch('src/assets/styles/*.scss', style)
+  watch('src/assets/scripts/*.js', script)
+  watch('src/*.html', page)
+  // 图片字体资源等，发生变化，重新加载即可
+  watch(['src/assets/images/**', 'src/assets/fonts/**', 'public/**'], bs.reload)
+
+  bs.init({
+    notify: false,
+    port: 2080, // 启动端口
+    open: true, // 是否自动打开浏览器
+    // files: 'dist/**', // 监听的文件，发生变化后，自动更新浏览器
+    server: {
+      baseDir: ['temp', 'src', 'public'], // 当为数组时，会按照顺序依次查找文件
+      routes: {
+        '/node_modules': 'node_modules' // 针对 / 开头请求，进行转接
+      }
+    }
+  })
+}
+
+const useref = () => {
+  return (
+    src('temp/*.html', { base: 'temp' })
+      // searchPath: 查找路径
+      .pipe(plugins.useref({ searchPath: ['temp', '.'] }))
+      // 压缩 js css html
+      .pipe(plugins.if(/\.js$/, plugins.uglify()))
+      .pipe(plugins.if(/\.css$/, plugins.cleanCss()))
+      .pipe(
+        plugins.if(
+          /\.html$/,
+          plugins.htmlmin({
+            collapseWhitespace: true,
+            minifyCSS: true,
+            minifyJS: true
+          })
+        )
+      )
+      .pipe(dest('dist'))
+  )
+}
+
+const compile = parallel(style, script, page)
+
+const build = series(
+  clean,
+  parallel(series(compile, useref), image, font, extra)
+)
+
+// 先进行编译，再打开浏览器，防止浏览器资源不存在
+const develop = series(compile, serve)
+
+module.exports = {
+  clean,
+  build,
+  develop
+}
+```
+
