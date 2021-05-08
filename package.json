@@ -5,6 +5,11 @@
   "repository": "https://github.com/Atlanstis/gulp-demo.git",
   "author": "Gypsophila. <futur_@163.com>",
   "license": "MIT",
+  "scripts": {
+    "clean": "gulp clean",
+    "build": "gulp build",
+    "develop": "gulp develop"
+  },
   "devDependencies": {
     "@babel/core": "^7.14.0",
     "@babel/preset-env": "^7.14.1",
