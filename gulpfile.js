@@ -1,6 +1,12 @@
 const { src, dest } = require('gulp')
 const sass = require('gulp-sass')
 const babel = require('gulp-babel')
+const swig = require('gulp-swig')
+
+const data = {
+  pkg: require('./package.json'),
+  date: new Date()
+}
 
 const style = () => {
   // { base: 'src' } 设置基准路径，此时写入流，会按照 src() 中匹配之后的路径（此处路径为 /assets/styles/），生成文件
@@ -15,7 +21,15 @@ const script = () => {
     .pipe(dest('dist'))
 }
 
+const page = () => {
+  // src/**/*.html 任意子目录下的 html
+  return src('src/*.html', { base: 'src' })
+    .pipe(swig({ data })) // 处理动态数据
+    .pipe(dest('dist'))
+}
+
 module.exports = {
   style,
-  script
+  script,
+  page
 }

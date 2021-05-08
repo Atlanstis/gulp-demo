@@ -93,3 +93,41 @@ module.exports = {
 
 运行 `yarn gulp script` ，查看结果。
 
+## 页面文件编译
+
+此处 html 文件，采用了模板引擎 swig，重用重复部分。
+
+### gulp-swig
+
+#### 安装
+
+```shell
+$ yarn add gulp-swig --dev
+```
+
+#### 修改 gulpfile.js
+
+```js
+const swig = require('gulp-swig')
+
+const data = {
+  pkg: require('./package.json'),
+  date: new Date()
+}
+
+const page = () => {
+  // src/**/*.html 任意子目录下的 html
+  return src('src/*.html', { base: 'src' })
+    .pipe(swig({ data })) // 处理动态数据
+    .pipe(dest('dist'))
+}
+
+module.exports = {
+  page
+}
+```
+
+针对 html 模板中的动态数据，可通过传入动态数据的方式，进行变更。
+
+运行 `yarn gulp page` ，查看结果。
+
